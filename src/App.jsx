@@ -1,122 +1,185 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { Routes, Route, NavLink } from 'react-router-dom';
+import Estadisticas from './pages/Estadisticas';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [jugadores, setJugadores] = useState([]);
+  const [busqueda, setBusqueda] = useState('');
+  const [posicion, setPosicion] = useState('Todas');
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const API_KEY = '041f20001625007f70d662ae8908e581';
+    const URL = '/api/players/topscorers?league=2&season=2024';
+
+    fetch(URL, {
+      method: 'GET',
+      headers: {
+        'x-apisports-key': API_KEY,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('Respuesta completa de API-Football:', data);
+        console.log('Lista de jugadores:', data.response);
+
+        if (data.response) {
+          setJugadores(data.response);
+        }
+        setCargando(false);
+      })
+      .catch((error) => {
+        console.error('Error al consumir la API:', error);
+        setCargando(false);
+      });
+  }, []);
+
+  // Filtrado en tiempo real por nombre, equipo, nacionalidad y posición
+  const jugadoresFiltrados = jugadores.filter((item) => {
+    const info = item.player;
+    const stats = item.statistics[0];
+    const texto = busqueda.toLowerCase();
+
+    const coincideTexto =
+      info.name.toLowerCase().includes(texto) ||
+      stats.team.name.toLowerCase().includes(texto) ||
+      info.nationality.toLowerCase().includes(texto);
+
+    const coincidePosicion =
+      posicion === 'Todas' || stats.games.position === posicion;
+
+    return coincideTexto && coincidePosicion;
+  });
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div>
+      {/* Navbar con NavLink para resaltar la ruta activa */}
+      <nav className="navbar">
+        <div className="navbar-brand">
+          ⚽ Fut<span>Market</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+        <div className="navbar-links">
+          <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            Explorar Jugadores
+          </NavLink>
+          <NavLink to="/estadisticas" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            Tabla de Estadísticas
+          </NavLink>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </nav>
 
-      <div className="ticks"></div>
+      {/* Hero + Buscador */}
+      <header className="hero-section">
+        <h1>Marketplace & Scouting de Élite</h1>
+        <p>Explora estadísticas oficiales, rendimiento por partido y perfil de los máximos goleadores.</p>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <div className="search-toolbar">
+          <div className="search-input-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Buscar por jugador, club o país (ej. Haaland, Arsenal, Brazil)..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          <select
+            className="filter-select"
+            value={posicion}
+            onChange={(e) => setPosicion(e.target.value)}
+          >
+            <option value="Todas">Todas las posiciones</option>
+            <option value="Attacker">Delanteros (Attacker)</option>
+            <option value="Midfielder">Mediocampistas (Midfielder)</option>
+            <option value="Defender">Defensas (Defender)</option>
+          </select>
+        </div>
+      </header>
+
+      {/* Rutas */}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <main className="main-container">
+              <div className="results-info">
+                <span>
+                  {cargando
+                    ? 'Cargando catálogo de jugadores...'
+                    : `Mostrando ${jugadoresFiltrados.length} de ${jugadores.length} jugadores`}
+                </span>
+                {busqueda && (
+                  <button
+                    onClick={() => { setBusqueda(''); setPosicion('Todas'); }}
+                    style={{ background: 'none', border: 'none', color: '#059669', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Limpiar filtros ✕
+                  </button>
+                )}
+              </div>
+
+              {!cargando && jugadoresFiltrados.length === 0 ? (
+                <div className="empty-state">
+                  <h3>No encontramos jugadores con "{busqueda}"</h3>
+                  <p>Prueba buscando otro futbolista, equipo o cambia el filtro de posición.</p>
+                </div>
+              ) : (
+                <div className="players-grid">
+                  {jugadoresFiltrados.map((item) => {
+                    const info = item.player;
+                    const stats = item.statistics[0];
+                    return (
+                      <div key={info.id} className="player-card">
+                        <div className="card-banner">
+                          <span className="position-badge">{stats.games.position}</span>
+                          <span className="rating-badge">
+                            ★ {stats.games.rating ? Number(stats.games.rating).toFixed(1) : 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="avatar-wrapper">
+                          <img src={info.photo} alt={info.name} className="player-avatar" />
+                        </div>
+
+                        <div className="card-body">
+                          <h3 className="player-name">{info.name}</h3>
+                          <div className="player-team">
+                            {stats.team.logo && (
+                              <img src={stats.team.logo} alt={stats.team.name} className="team-logo" />
+                            )}
+                            <span>{stats.team.name} • {info.nationality}</span>
+                          </div>
+
+                          <div className="stats-row">
+                            <div className="stat-box">
+                              <span className="stat-value">{stats.goals.total ?? 0}</span>
+                              <span className="stat-label">Goles</span>
+                            </div>
+                            <div className="stat-box">
+                              <span className="stat-value">{stats.goals.assists ?? 0}</span>
+                              <span className="stat-label">Asist.</span>
+                            </div>
+                            <div className="stat-box">
+                              <span className="stat-value">{stats.games.appearences ?? 0}</span>
+                              <span className="stat-label">Partidos</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </main>
+          }
+        />
+        <Route path="/estadisticas" element={<Estadisticas jugadores={jugadoresFiltrados} />} />
+      </Routes>
+    </div>
+  );
 }
 
-export default App
+export default App;
